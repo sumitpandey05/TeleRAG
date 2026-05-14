@@ -4,11 +4,11 @@ from sentence_transformers import CrossEncoder
 
 EMBED_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
 RERANK_MODEL = 'cross-encoder/ms-marco-MiniLM-L-6-v2'
-INDEX_PATH = 'index/Faiss_index'
+INDEX_PATH = 'index/faiss_index'
 INITIAL_K = 20
 FINAL_K = 5
 
-class TeleRagRetriever:
+class TeleRAGRetriever:
     def __init__(self):
         print('Loading Embedded Model...')
         self.embeddings = HuggingFaceEmbeddings(model_name = EMBED_MODEL, model_kwargs = {'device': 'cpu'})
@@ -31,7 +31,7 @@ class TeleRagRetriever:
         return [(doc,float(s)) for (doc, _), s in ranked[:FINAL_K]]
 
 if __name__ == '__main__':
-    r = TeleRagRetriever()
+    r = TeleRAGRetriever()
     results = r.retrieve('What is handover in 5G NR?')
     print(f'Top {len(results)} results:')
 
