@@ -48,19 +48,14 @@ def run_eval():
         'question': questions,
         'answer': answers,
         'contexts' : contexts,
-        'ground_truths': ground_truths,
+        'ground_truth': ground_truths,
         
     })
 
     print('RAGAS metrics')
     results = evaluate(
         dataset = ds,
-        metrics = {
-            'faithfulness': faithfulness,
-            'answer_relevancy': answer_relevancy,
-            'context_recall': context_recall,
-            'context_precision': context_precision
-        },
+        metrics = [faithfulness, answer_relevancy, context_recall, context_precision]
     )
 
     print("TELERAG EVALUATION RESULTS:")
