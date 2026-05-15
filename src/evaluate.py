@@ -8,19 +8,28 @@ TELEQNA_PATH = 'data/teleqna/TeleQnA.json'
 NUM_QUESTION = 50
 
 def load_test_questions(path, n):
-    with open(path, 'r', encoding = 'utf-8') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    test_start = int(len(data) * 0.8)
-    subset = data[test_start: test_start+n]
+
+    # data is a dict — convert values to a list
+    all_items = list(data.values())
+
+    # Use last 20% as held-out test set
+    test_start = int(len(all_items) * 0.8)
+    subset = all_items[test_start : test_start + n]
+
     questions, ground_truths = [], []
     for item in subset:
-        q = item.get('question', '')
-        ans_key = item.get('answer', '')
-        ans_text = item.get(ans_key, ans_key)
-        if q and ans_text:
+        q          = item.get('question', '').strip()
+        answer_raw = item.get('answer', '')
+        if ':' in answer_raw:
+            answer_text = answer_raw.split(':', 1)[1].strip()
+        else:
+            answer_text = answer_raw.strip()
+        if q and answer_text:
             questions.append(q)
-            ground_truths.append(ans_text)
-    
+            ground_truths.append(answer_text)
+
     return questions, ground_truths
 
 def run_eval():

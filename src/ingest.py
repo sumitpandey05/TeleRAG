@@ -50,7 +50,7 @@ def chunk_pages(pages):
 def load_teleqna(path):
 
     if not os.path.exists(path):
-        print("TeleQna not found, skipping")
+        print(f'Warning: TeleQnA dataset not found at {path}.Skipping')
         return []
     
     with open(path,'r', encoding='utf-8') as f:
@@ -58,16 +58,34 @@ def load_teleqna(path):
 
     docs = []
 
-    for item in data:
-        q = item.get('question', '')
-        ans_text = item.get('answer', '')
+    for key,item in data.items():
+        q = item.get('question', '').strip()
+        answer_raw = item.get('answer', '')        # format: "option 3: min(nt, nr)"
+        explanation= item.get('explanation', '')
+        category   = item.get('category', '')
 
-        ans_key = item.get('answer_key', '')
+        if ':' in answer_raw:
+            answer_text = answer_raw.split(':', 1)[1].strip()
+        else:
+            answer_text = answer_raw.strip()
 
-        docs.append(Document(page_content=f"Question: {q}\nAnswer: {ans_text}", metadata = {'source': 'TeleQna', 'page':0, 'type': 'qna'}))
+        text = (
+            f"Question: {q}\n"
+            f"Answer: {answer_text}\n"
+            f"Explanation: {explanation}\n"
+            f"Category: {category}"
+        )
 
-        print(f'Loaded {len(docs)} TeleQnA Q&A pairs')
-    
+        docs.append(Document(
+            page_content = text,
+            metadata = {
+                'source': 'TeleQnA',
+                'page' : 0,
+                'type' : 'qna',
+                'question_id' : key,
+            }
+        ))
+    print(f'Loaded {len(docs)} TeleQnA Q&A pairs')    
     return docs
 
 def main():
