@@ -7,7 +7,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 #Import OLlama LLM Wrapper
 # This lets Python talk to your local Ollama model
-from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM as Ollama
 
 # Import RetrievalQA chain
 # This combines retrieval + LLM answering

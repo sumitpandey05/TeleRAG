@@ -1,9 +1,9 @@
-from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM as Ollama
 from src.retriever import TeleRAGRetriever
 
 LLM_MODEL = 'llama3.1:8b'
 
-class TeleRAGpipeline:
+class TeleRAGPipeline:
     def __init__(self):
         self.retriever = TeleRAGRetriever()
         self.llm = Ollama(model=LLM_MODEL,temperature=0)
@@ -36,7 +36,7 @@ class TeleRAGpipeline:
 
         return {'question': question, 'answer': answer, 'sources': source, 'retrieved': retrieved}
 if __name__ == '__main__':
-    p = TeleRAGpipeline()
+    p = TeleRAGPipeline()
     for q in ['What is the handover in 5G?', 'What does gNB stand for?']:
         print('\n' + '='*60)
         r = p.query(q)

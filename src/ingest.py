@@ -2,10 +2,10 @@ import os #used for working with folders/files ,joining file paths, listing pdfs
 import json #used to read the teleqna json data set
 import fitz #PyMuPDF library, used to open and read files page by page
 from tqdm import tqdm #Creates progress bars while processing files and batches
-from langchain.text_splitter import RecursiveCharacterTextSplitter #splits large texts into smaller chunks
+from langchain_text_splitters import RecursiveCharacterTextSplitter #splits large texts into smaller chunks
 from langchain_community.vectorstores import FAISS #FAISS = facebook AI similarity search, Used to store vectors embeddings for semantic search
 from langchain_huggingface import HuggingFaceEmbeddings #Converts text into embeddings/vector using HuggingFace models
-from langchain.schema import Document #Standard Langchain Document object, it stores the page content and the metadata 
+from langchain_core.documents import Document #Standard Langchain Document object, it stores the page content and the metadata 
 
 PDF_FOLDER = 'data/pdfs' #Folder with the telecom pdfs
 INDEX_PATH = 'index/faiss_index' #Path where the FAISS index will be saved after processing the documents
