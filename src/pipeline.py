@@ -7,6 +7,7 @@ class TeleRAGPipeline:
     def __init__(self):
         self.retriever = TeleRAGRetriever()
         self.llm = Ollama(model=LLM_MODEL,temperature=0)
+        self.vectorstore = self.retriever.vectorstore
         with open('prompts/system.txt', 'r') as f:
             self.system_prompt = f.read()
         print('Pipeline Ready')

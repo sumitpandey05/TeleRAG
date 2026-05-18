@@ -13,8 +13,8 @@ TELEQNA_PATH = 'data/teleqna/TeleQnA.json' #Path to the teleqna dataset
 
 EMBED_MODEL = 'sentence-transformers/all-MiniLM-L6-v2' #Embedding model name that converts text into vectors
 
-CHUNK_SIZE = 500 #Each chunk will contain a maximum of 500 characters
-CHUNK_OVERLAP = 50 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
+CHUNK_SIZE = 2000 #Each chunk will contain a maximum of 2000 characters
+CHUNK_OVERLAP = 200 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
 
 
 #Function to extract text from a pdf file, it uses the PyMuPDF library to read the file page by page and extract the text content. It returns a list of dictionaries, where each dictionary contains the text, page number, and source filename for each page that has more than 50 characters of text.
@@ -29,7 +29,10 @@ def extract_pdf(path):
         text = page.get_text('text')
 
         if len(text.strip()) > 50:
-            pages.append({'text':text, 'page':i+1, 'source':os.path.basename(path)})
+            pages.append({'text':text, 
+                          'page':i+1, 
+                          'source':os.path.basename(path),
+            })
 
     doc.close()
 
@@ -37,13 +40,24 @@ def extract_pdf(path):
 
 def chunk_pages(pages):
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size = CHUNK_SIZE, chunk_overlap = CHUNK_OVERLAP, separators = ['\n\n', '\n', '.', ' ', ''])
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size = CHUNK_SIZE, 
+        chunk_overlap = CHUNK_OVERLAP, 
+        separators = ['\n\n', '\n', '. ', ' ', ''],
+    )
     chunks = []
 
     for p in pages:
 
         for split in splitter.split_text(p['text']):
-            chunks.append(Document(page_content = split, metadata = {'source':p['source'], 'page':p['page'], 'type': '3GPP'}))
+            chunks.append(Document(
+                page_content = split,
+                metadata = {
+                    'source':p['source'], 
+                    'page':p['page'], 
+                    'type': '3GPP'
+                }
+            ))
 
     return chunks
 
@@ -59,7 +73,7 @@ def load_teleqna(path):
     docs = []
 
     for key,item in data.items():
-        q = item.get('question', '').strip()
+        q          = item.get('question', '').strip()
         answer_raw = item.get('answer', '')        # format: "option 3: min(nt, nr)"
         explanation= item.get('explanation', '')
         category   = item.get('category', '')
@@ -92,45 +106,43 @@ def main():
     os.makedirs('index', exist_ok=True)
     all_docs = []
 
-    pdf_files = [
-        f for f in os.listdir(PDF_FOLDER)
-        if f.endswith('.pdf')
-    ]
+    pdf_files = [f for f in os.listdir(PDF_FOLDER) if f.endswith('.pdf')]
 
-    for pdf in tqdm(pdf_files,desc='Processing PDFs'):
-        pages = extract_pdf(os.path.join(PDF_FOLDER,pdf))
+    for pdf in tqdm(pdf_files, desc='Processing PDFs'):
+        pages = extract_pdf(os.path.join(PDF_FOLDER, pdf))
         chunks = chunk_pages(pages)
-
         all_docs.extend(chunks)
-
         print(f'{pdf}: {len(pages)} pages -> {len(chunks)} chunks')
-        all_docs.extend(load_teleqna(TELEQNA_PATH))
-        print(f'Total documents: {len(all_docs)}')
+    
+    teleqna_docs = load_teleqna(TELEQNA_PATH)
+    all_docs.extend(teleqna_docs)
+
+    print(f'Total documents to index: {len(all_docs)}')
 
     print('Loading embedding model '
         '(downloads ~90MB on first run)...')
     
-    embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL, model_kwargs={'device': 'cpu'})
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBED_MODEL, 
+        model_kwargs={'device': 'cpu'}
+    
+    )
     print('Building FAISS index')
 
     vectorstore = None
     for i in tqdm(
-        range(0, len(all_docs), 500),
-        desc='Batches'
-    ):
+        range(0, len(all_docs), 500),desc='Batches'):
         batch = all_docs[i:i+500]
 
         if vectorstore is None:
 
-            vectorstore = FAISS.from_documents(
-                batch,
-                embeddings
-            )
+            vectorstore = FAISS.from_documents(batch,embeddings)
 
         else:
             vectorstore.add_documents(batch)
     vectorstore.save_local(INDEX_PATH)
     print(f'Index saved to {INDEX_PATH}')
+    print(f'Total vectors in index: {vectorstore.index.ntotal}')
 
 if __name__ == '__main__':
     main()
