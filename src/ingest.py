@@ -8,6 +8,7 @@ from langchain_huggingface import HuggingFaceEmbeddings #Converts text into embe
 from langchain_core.documents import Document #Standard Langchain Document object, it stores the page content and the metadata 
 
 PDF_FOLDER = 'data/pdfs' #Folder with the telecom pdfs
+ORAN_FOLDER = 'data/oransc' #Folder with ORAN specifications
 INDEX_PATH = 'index/faiss_index' #Path where the FAISS index will be saved after processing the documents
 TELEQNA_PATH = 'data/teleqna/TeleQnA.json' #Path to the teleqna dataset
 
@@ -114,6 +115,14 @@ def main():
         all_docs.extend(chunks)
         print(f'{pdf}: {len(pages)} pages -> {len(chunks)} chunks')
     
+    oran_files = [f for f in os.listdir(ORAN_FOLDER) if f.endswith('.pdf')]
+    print(f'\nProcessing {len(oran_files)} O-RAN specs...')
+    for pdf in tqdm(oran_files, desc='Processing O-RAN PDFs'):
+        pages  = extract_pdf(os.path.join(ORAN_FOLDER, pdf))
+        chunks = chunk_pages(pages)
+        all_docs.extend(chunks)
+        print(f'  {pdf}: {len(pages)} pages → {len(chunks)} chunks')
+        
     teleqna_docs = load_teleqna(TELEQNA_PATH)
     all_docs.extend(teleqna_docs)
 
