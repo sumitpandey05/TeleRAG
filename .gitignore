@@ -19,3 +19,12 @@ index/
 Thumbs.db
 
 data/
+
+# llama.cpp build/source
+llama.cpp/
+
+# model directory
+tele-llm/
+
+# GGUF model files
+*.gguf

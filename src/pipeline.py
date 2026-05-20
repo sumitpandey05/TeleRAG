@@ -3,8 +3,7 @@ import time
 from langchain_ollama import OllamaLLM as Ollama
 from src.retriever import TeleRAGRetriever
  
-LLM_MODEL = 'llama3.1:8b'
- 
+LLM_MODEL = 'tele-llm'
 class TeleRAGPipeline:
     def __init__(self):
         self.retriever    = TeleRAGRetriever()

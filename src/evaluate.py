@@ -12,7 +12,7 @@ from src.pipeline import TeleRAGPipeline
 TELEQNA_PATH  = 'data/teleqna/TeleQnA.json'
 NUM_QUESTIONS = 10        # raise to 50 for final run
 EMBED_MODEL   = 'sentence-transformers/all-MiniLM-L6-v2'
-OLLAMA_MODEL = 'llama3.1:8b'
+OLLAMA_MODEL = 'tele-llm'
 SIM_THRESHOLD = 0.75      # cosine similarity threshold
 
 
