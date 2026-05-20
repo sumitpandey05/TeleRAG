@@ -8,7 +8,7 @@ class TeleRAGPipeline:
     def __init__(self):
         self.retriever    = TeleRAGRetriever()
         self.vectorstore  = self.retriever.vectorstore   # expose for evaluator
-        self.llm          = Ollama(model=LLM_MODEL, temperature=0)
+        self.llm          = Ollama(model=LLM_MODEL, temperature=0, timeout = 300)
         with open('prompts/system.txt', 'r') as f:
             self.system_prompt = f.read()
         print('Pipeline Ready')
@@ -87,6 +87,10 @@ class TeleRAGPipeline:
         )
         root_cause = self.llm.invoke(cause_prompt)
  
+        if not root_cause:
+            root_cause = f'ROOT CAUSE: Unable to determine from context for issue: {issue}'
+
+
         # Step 3 — retrieve again using the identified cause
         step2 = self.retriever.retrieve(root_cause)
         ctx2  = self._format_context(step2)
@@ -105,6 +109,15 @@ class TeleRAGPipeline:
             f'SOURCES: ...'
         )
         final_answer = self.llm.invoke(final_prompt)
+
+        if not final_answer:
+            fallback_prompt = (
+                f'{self.system_prompt}\n\n'
+                f'CONTEXT:\n{ctx1}\n\n'
+                f'Analyze this issue and give SYMPTOM, ROOT CAUSE, '
+                f'AFFECTED COMPONENTS, RECOMMENDED FIX:\n\n{issue}'
+            )
+            final_answer = self.llm.invoke(fallback_prompt).strip()
  
         # Merge retrieved docs (deduplicated)
         seen     = set()

@@ -15,11 +15,15 @@ class AnomalyDetector:
     def analyze(self, log_text: str) -> dict:
         # Step 1 — keyword pre-screen
         found = [kw for kw in ANOMALY_INDICATORS if kw.lower() in log_text.lower()]
+
+        enriched = (
+            f"Analyze the RAN log for anomalies"
+            f"Identify the fault, affected components and recommend fix:\n"
+            f"{log_text}"
+        )
  
         # Step 2 — RAG-based analysis using RCA query
-        result = self.pipeline.rca_query(
-            f'Analyze this RAN log for anomalies and faults: {log_text}'
-        )
+        result = self.pipeline.query(enriched)
  
         return {
             'log':              log_text,
