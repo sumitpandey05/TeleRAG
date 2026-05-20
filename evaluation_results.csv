@@ -1,2 +1,2 @@
 mrr,topk_accuracy,accuracy,faithfulness,context_recall,context_precision
-1.0,1.0,0.8976546704769135,0.08333333333333333,0.2,0.26
+1.0,1.0,0.5713351786136627,0.275,0.1,0.4133333333333334
