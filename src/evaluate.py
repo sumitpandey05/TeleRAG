@@ -122,12 +122,12 @@ def compute_topk_accuracy(questions, vectorstore, gt_chunks, k=5):
     return hits / len(questions)
 
 
-def compute_accuracy(generated_answers, ground_truths):
+def compute_accuracy(generated_answers, ground_truths,questions):
     
     sbert  = _get_sbert()
     scores = []
 
-    for answer, gt in zip(generated_answers, ground_truths):
+    for answer, gt, q in zip(generated_answers, ground_truths, questions):
         if gt.lower().strip() in answer.lower():
             scores.append(1.0)
             continue
@@ -137,15 +137,31 @@ def compute_accuracy(generated_answers, ground_truths):
             s.strip() for s in answer.replace('\n', '. ').split('.')
             if len(s.strip()) > 10
         ]
-        if not sentences:
-            scores.append(0.0)
+        best_sbert = 0.0
+
+        if sentences:
+            gt_emb     = sbert.encode(gt, convert_to_tensor=True)
+            sent_embs  = sbert.encode(sentences, convert_to_tensor=True)
+            best_sbert = max(float(util.cos_sim(se, gt_emb)) for se in sent_embs)
+
+        # If SBERT is already high enough, use it directly
+        if best_sbert >= 0.70:
+            scores.append(best_sbert)
             continue
- 
-        gt_emb     = sbert.encode(gt, convert_to_tensor=True)
-        sent_embs  = sbert.encode(sentences, convert_to_tensor=True)
-        best_score = max(float(util.cos_sim(se, gt_emb)) for se in sent_embs)
-        scores.append(best_score)
-        scores.append(best_score)
+
+        # Check 3 — LLM judge for rephrased answers
+        # Catches: "minimum of nt and nr" vs ground truth "min(nt, nr)"
+        prompt = (
+            f"QUESTION: {q}\n"
+            f"CORRECT ANSWER: {gt}\n"
+            f"STUDENT RESPONSE: {answer[:500]}\n\n"
+            f"Does the student response correctly convey the answer '{gt}'?\n"
+            f"Reply with YES or NO only. Do not explain."
+        )
+        if _ask_yes_no(prompt):
+            scores.append(1.0)
+        else:
+            scores.append(best_sbert)   # use SBERT score as partial credit
 
     return float(np.mean(scores))
 
@@ -278,7 +294,7 @@ def run_eval():
     topk_acc = compute_topk_accuracy(questions, vectorstore, gt_chunks, k=5)
  
     print('  [3/6] Accuracy...')
-    accuracy = compute_accuracy(answers, ground_truths)
+    accuracy = compute_accuracy(answers, ground_truths, questions)
  
     print('  [4/6] Context Recall...')
     recall = compute_context_recall(questions, vectorstore, gt_chunks, k=10)
