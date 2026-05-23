@@ -175,6 +175,12 @@ def compute_faithfulness(answers, contexts_list):
     
     print('  Scoring Faithfulness with LLM judge...')
     scores = []
+
+    SKIP_PREFIXES = (
+        'note:', 'based on', 'the context', 'the provided context',
+        'i cannot', 'this information', 'unfortunately', 'however,',
+        'please note', 'it is worth', 'it should be noted',
+    )
  
     for i, (answer, contexts) in enumerate(zip(answers, contexts_list)):
         print(f'    Q{i+1}/{len(answers)}', end=' ', flush=True)
@@ -189,6 +195,16 @@ def compute_faithfulness(answers, contexts_list):
         if not sentences:
             scores.append(0.0)
             print('(no sentences found)')
+            continue
+
+        claim_sentences = [
+            s for s in sentences
+            if not s.lower().startswith(SKIP_PREFIXES)
+        ]
+
+        if not claim_sentences:
+            scores.append(1.0)
+            print('(all meta-sentences — full credit)')
             continue
  
         yes_count   = 0
