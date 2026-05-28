@@ -12,11 +12,12 @@ ORAN_FOLDER = 'data/oransc' #Folder with ORAN specifications
 INDEX_PATH = 'index/faiss_index' #Path where the FAISS index will be saved after processing the documents
 TELEQNA_PATH = 'data/teleqna/TeleQnA.json' #Path to the teleqna dataset
 
-EMBED_MODEL = 'sentence-transformers/all-MiniLM-L6-v2' #Embedding model name that converts text into vectors
+EMBED_MODEL = 'BAAI/bge-large-en-v1.5' #Embedding model name that converts text into vectors
 
-CHUNK_SIZE = 2000 #Each chunk will contain a maximum of 2000 characters
-CHUNK_OVERLAP = 200 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
-
+CHILD_CHUNK_SIZE = 512 #Each chunk will contain a maximum of 2000 characters
+CHILD_OVERLAP = 50 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
+PARENT_CHUNK_SIZE = 2048
+PARENT_OVERLAP = 200
 
 #Function to extract text from a pdf file, it uses the PyMuPDF library to read the file page by page and extract the text content. It returns a list of dictionaries, where each dictionary contains the text, page number, and source filename for each page that has more than 50 characters of text.
 def extract_pdf(path):
@@ -39,28 +40,40 @@ def extract_pdf(path):
 
     return pages
 
-def chunk_pages(pages):
+def chunk_pages(pages,doc_type = '3GPP'):
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size = CHUNK_SIZE, 
-        chunk_overlap = CHUNK_OVERLAP, 
+    parent_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = PARENT_CHUNK_SIZE, 
+        chunk_overlap = PARENT_OVERLAP, 
         separators = ['\n\n', '\n', '. ', ' ', ''],
+        add_start_index = True,
     )
-    chunks = []
+
+    child_splitter = RecursiveCharacterTextSplitter(
+        chunk_size      = CHILD_CHUNK_SIZE,
+        chunk_overlap   = CHILD_OVERLAP,
+        separators      = ['\n\n', '\n', '. ', ' ', ''],
+        add_start_index = True,
+    )
+
+    child_docs = []
+    
 
     for p in pages:
-
-        for split in splitter.split_text(p['text']):
-            chunks.append(Document(
-                page_content = split,
-                metadata = {
-                    'source':p['source'], 
-                    'page':p['page'], 
-                    'type': '3GPP'
-                }
-            ))
-
-    return chunks
+        parent_chunks = parent_splitter.split_text(p['text'])
+        for parent_text in parent_chunks:
+            child_chunks = child_splitter.split_text(parent_text)
+            for child_text in child_chunks:
+                child_docs.append(Document(
+                    page_content = child_text,       # small — for retrieval
+                    metadata     = {
+                        'source':      p['source'],
+                        'page':        p['page'],
+                        'type':        doc_type,
+                        'parent_text': parent_text,  # large — for LLM context
+                    }
+                ))
+    return child_docs
 
 def load_teleqna(path):
 
@@ -108,33 +121,35 @@ def main():
     all_docs = []
 
     pdf_files = [f for f in os.listdir(PDF_FOLDER) if f.endswith('.pdf')]
-
-    for pdf in tqdm(pdf_files, desc='Processing PDFs'):
+    print(f'\nProcessing {len(pdf_files)} 3GPP PDFs...')
+    for pdf in tqdm(pdf_files, desc='3GPP PDFS'):
         pages = extract_pdf(os.path.join(PDF_FOLDER, pdf))
         chunks = chunk_pages(pages)
         all_docs.extend(chunks)
         print(f'{pdf}: {len(pages)} pages -> {len(chunks)} chunks')
     
-    oran_files = [f for f in os.listdir(ORAN_FOLDER) if f.endswith('.pdf')]
-    print(f'\nProcessing {len(oran_files)} O-RAN specs...')
-    for pdf in tqdm(oran_files, desc='Processing O-RAN PDFs'):
-        pages  = extract_pdf(os.path.join(ORAN_FOLDER, pdf))
-        chunks = chunk_pages(pages)
-        all_docs.extend(chunks)
-        print(f'  {pdf}: {len(pages)} pages → {len(chunks)} chunks')
+    if os.path.exists(ORAN_FOLDER):
+        oran_files = [f for f in os.listdir(ORAN_FOLDER) if f.endswith('.pdf')]
+        print(f'\nProcessing {len(oran_files)} O-RAN specs...')
+        for pdf in tqdm(oran_files, desc='O-RAN PDFs'):
+            pages  = extract_pdf(os.path.join(ORAN_FOLDER, pdf))
+            chunks = chunk_pages(pages, doc_type='O-RAN')
+            all_docs.extend(chunks)
+            print(f'  {pdf}: {len(pages)} pages → {len(chunks)} child chunks')
+    else:
+        print(f'\nWarning: {ORAN_FOLDER} not found. Skipping.')
         
     teleqna_docs = load_teleqna(TELEQNA_PATH)
     all_docs.extend(teleqna_docs)
 
     print(f'Total documents to index: {len(all_docs)}')
 
-    print('Loading embedding model '
-        '(downloads ~90MB on first run)...')
+    print('\nLoading BGE-Large embedding model (~1.3GB download on first run)...')
     
     embeddings = HuggingFaceEmbeddings(
-        model_name=EMBED_MODEL, 
-        model_kwargs={'device': 'cpu'}
-    
+        model_name    = EMBED_MODEL,
+        model_kwargs  = {'device': 'cpu'},
+        encode_kwargs = {'normalize_embeddings': True},
     )
     print('Building FAISS index')
 
