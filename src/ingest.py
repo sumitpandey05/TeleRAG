@@ -12,10 +12,10 @@ ORAN_FOLDER = 'data/oransc' #Folder with ORAN specifications
 INDEX_PATH = 'index/faiss_index' #Path where the FAISS index will be saved after processing the documents
 TELEQNA_PATH = 'data/teleqna/TeleQnA.json' #Path to the teleqna dataset
 
-EMBED_MODEL = 'BAAI/bge-large-en-v1.5' #Embedding model name that converts text into vectors
+EMBED_MODEL = 'BAAI/bge-base-en-v1.5' #Embedding model name that converts text into vectors
 
-CHILD_CHUNK_SIZE = 512 #Each chunk will contain a maximum of 2000 characters
-CHILD_OVERLAP = 50 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
+CHILD_CHUNK_SIZE = 1000 #Each chunk will contain a maximum of 2000 characters
+CHILD_OVERLAP = 100 #Adjacent chunks overlap by 50 chars, this helps preserve the context in the text
 PARENT_CHUNK_SIZE = 2048
 PARENT_OVERLAP = 200
 
@@ -111,6 +111,7 @@ def load_teleqna(path):
                 'page' : 0,
                 'type' : 'qna',
                 'question_id' : key,
+                'parent_text': text,
             }
         ))
     print(f'Loaded {len(docs)} TeleQnA Q&A pairs')    
@@ -155,7 +156,7 @@ def main():
 
     vectorstore = None
     for i in tqdm(
-        range(0, len(all_docs), 500),desc='Batches'):
+        range(0, len(all_docs), 100),desc='Batches'):
         batch = all_docs[i:i+500]
 
         if vectorstore is None:

@@ -11,7 +11,7 @@ from src.pipeline import TeleRAGPipeline
 
 TELEQNA_PATH  = 'data/teleqna/TeleQnA.json'
 NUM_QUESTIONS = 10        # raise to 50 for final run
-EMBED_MODEL   = 'sentence-transformers/all-MiniLM-L6-v2'
+EMBED_MODEL   = 'BAAI/bge-base-en-v1.5'
 JUDGE_MODEL = 'llama3.1:8b'
 
 DOC_THRESHOLD = 0.75

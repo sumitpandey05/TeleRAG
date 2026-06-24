@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from sentence_transformers import CrossEncoder
 from rank_bm25 import BM25Okapi
 
-EMBED_MODEL = 'BAAI/bge-large-en-v1.5'
+EMBED_MODEL = 'BAAI/bge-base-en-v1.5'
 RERANK_MODEL = 'cross-encoder/ms-marco-MiniLM-L-6-v2'
 INDEX_PATH = 'index/faiss_index'
 INITIAL_K = 30
