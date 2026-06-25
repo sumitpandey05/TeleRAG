@@ -16,9 +16,7 @@ TeleRAG addresses this by providing an intelligent assistant that:
 
 ---
 
-## Architecture 
 
----
 
 
 ---
@@ -60,7 +58,7 @@ Root cause analysis uses a **4-step reasoning chain**:
 | **3GPP TS 38.321** | MAC layer | MAC procedures |
 | **3GPP TS 38.331** | RRC | Radio Resource Control |
 | **3GPP TS 38.401** | NG-RAN architecture | Network architecture |
-
+(still increasing the data set specs)
 **Total indexed vectors: 18,931**
 
 
